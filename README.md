@@ -81,7 +81,7 @@ extends to this controller, it will automatically trigger output to be cached.
 
 			$uri = Arr::get($_SERVER, 'REQUEST_URI', $this->request->uri());
 
-			Dc_Pagecache::factory($uri)
+			Pagecache::factory($uri)
 				->write($this->response->body());
 		}
 	}
@@ -95,6 +95,10 @@ extending the `Controller_Cached`.
 
 	class Controller_Faq extends Controller_Cached {
 		// The rest of the code here
+
+## Cleaning up
+
+To clear your cached files, call `Pagecache::cleanup()`.
 
 ## Tests?
 
