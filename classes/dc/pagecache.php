@@ -1,5 +1,4 @@
 <?php defined('SYSPATH') or die('No direct script access.');
-
 /**
  * Page caching
  *
@@ -26,18 +25,13 @@
  *
  * You can change the cache directory by creating your own config/pagecache.php
  */
-class Dc_Pagecache
-{	
+class Dc_Pagecache {
 	/**
-	 * File name
-	 *
 	 * @var string
 	 */
 	protected $_file;
 	
 	/**
-	 * Cache directory
-	 *
 	 * @var string
 	 */
 	protected static $_cache_dir;
@@ -45,8 +39,8 @@ class Dc_Pagecache
 	/**
 	 * Factory pattern for creating page cache
 	 *
-	 * @param string $uri
-	 * @return Pagecache
+	 * @param   string		uri
+	 * @return  Pagecache
 	 */
 	public static function factory($uri)
 	{
@@ -56,14 +50,14 @@ class Dc_Pagecache
 	/**
 	 * Returns the cache directory
 	 *
-	 * @return string
+	 * @return  string
 	 */
 	public static function cache_dir()
 	{
 		if (self::$_cache_dir === null)
 		{
 			$config = Kohana::config('pagecache');
-			if (!$config->offsetExists('cache_dir'))
+			if ( ! $config->offsetExists('cache_dir'))
 			{
 				throw new Exception('No cache directory is specified');
 			}
@@ -76,56 +70,57 @@ class Dc_Pagecache
 	/**
 	 * Cleans the whole cache
 	 *
-	 * @return void
+	 * @return  void
 	 */
 	public static function cleanup()
 	{
 		$path = self::cache_dir();
 		
-		// only delete files
+		// Only delete files, not the cache dir
 		return self::_delete_all($path, true);
 	}
 	
 	/**
 	 * Deletes files and directories recursively
 	 *
-	 * @param string $directory		target dir
-	 * @param boolean $empty		whether to delete the dir or just empty it
-	 * @return boolean
+	 * @param   string		target directory
+	 * @param   boolean		whether to delete the dir or just empty it
+	 * @return  boolean
 	 */
 	protected static function _delete_all($directory, $empty = false)
 	{
-		// always check since we could accidentally delete root
+		// Always check since we could accidentally delete root
 		if ($directory == '/')
 		{
-			return false;
+			return FALSE;
 		}
 		
-		// remove trailing slash
-		if(substr($directory,-1) == "/")
+		// Remove trailing slash
+		if(substr($directory, -1) == '/')
 		{ 
-			$directory = substr($directory,0,-1); 
+			$directory = substr($directory, 0, -1);
 		} 
 		
-		// should be a valid dir
-		if(!file_exists($directory) || !is_dir($directory))
+		// Should be a valid dir
+		if( ! is_dir($directory))
 		{ 
-			return false; 
+			return FALSE;
 		}
 		
-		// dir should be readable
-		if(!is_readable($directory))
+		// Dir should be readable
+		if( ! is_readable($directory))
 		{ 
-			return false; 
+			return FALSE;
 		}
 		
 		$directoryHandle = opendir($directory); 
 	
 		while ($contents = readdir($directoryHandle))
-		{ 
+		{
+			// Do not include the two special being
 			if($contents != '.' && $contents != '..')
 			{ 
-				$path = $directory . "/" . $contents; 
+				$path = $directory . '/' . $contents;
 	
 				if(is_dir($path))
 				{ 
@@ -140,22 +135,22 @@ class Dc_Pagecache
 	
 		closedir($directoryHandle); 
 	
-		if($empty == false)
+		if($empty === FALSE)
 		{ 
-			if(!rmdir($directory))
+			if( ! rmdir($directory))
 			{ 
-				return false; 
+				return FALSE;
 			} 
 		} 
 	
-		return true; 
+		return TRUE;
 	}
 	
 	/**
 	 * __construct()
 	 *
-	 * @param string $uri
-	 * @return void
+	 * @param   string	URI
+	 * @return  void
 	 */
 	protected function __construct($uri)
 	{
@@ -165,49 +160,50 @@ class Dc_Pagecache
 	/**
 	 * Initializes the file based on the uri
 	 *
-	 * @param string $uri
-	 * @return $this
+	 * @param   string	URI
+	 * @return  $this
 	 */
 	protected function _init_file($uri)
 	{
 		$base = self::cache_dir();
 		
-		// create base path under the cache dir
-		if (!is_dir($base))
+		// Create base path under the cache dir
+		if ( ! is_dir($base))
 		{
 			mkdir($base, 0777);
 			chmod($base, 0777);
 		}
 
-		// ensure that we only loop on path if the uri
+		// Ensure that we only loop on path if the uri
 		// is not empty
 		$paths = array();
+
 		if ($uri)
 		{	
 			$paths = explode('/', $uri);
 		}
 
-		// create the path to uri except for index.html
+		// Create the path to uri except for index.html
 		$path = $base;
 		foreach ($paths as $sub)
 		{
 			$path .= "/$sub";
-			if (!is_dir($path))
+			if ( ! is_dir($path))
 			{
 				mkdir($path, 0777);
 				chmod($path, 0777);
 			}
 		}
 		
-		// cached page
+		// Cached page
 		$this->_file = "$path/index.html";
 
-		if (!file_exists($this->_file))
+		if ( ! is_file($this->_file))
 		{
 			// Create the cache file
 			file_put_contents($this->_file, '');
 			
-			// Allow anyone to write to log files
+			// Allow anyone to write to cached files
 			chmod($this->_file, 0666);
 		}
 		
@@ -217,19 +213,20 @@ class Dc_Pagecache
 	/**
 	 * Writes to cache
 	 *
-	 * @param string $data
-	 * @return $this
+	 * @param   string	data
+	 * @return  $this
 	 */
 	public function write($data)
 	{
 		file_put_contents($this->_file, $data);
+		
 		return $this;
 	}
 
 	/** 
 	 * Reads the cached page and returns it as string
 	 *
-	 * @return string
+	 * @return  string
 	 */
 	public function read()
 	{
@@ -239,11 +236,11 @@ class Dc_Pagecache
 	/**
 	 * Deletes a cached page
 	 *
-	 * @return boolean
+	 * @return  boolean
 	 */
 	public function delete()
 	{
 		return unlink($this->_file);
 	}
-}
-
+	
+} // End Dc_Pagecache
