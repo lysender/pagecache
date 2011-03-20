@@ -100,8 +100,8 @@ abstract class Dc_Pagecache {
 	
 		while ($contents = readdir($directory_handle))
 		{
-			// Do not include the two special being
-			if($contents != '.' && $contents != '..')
+			// Do not include directories starting with dot (.)
+			if(strpos('.', $contents) !==)
 			{ 
 				$path = $directory . '/' . $contents;
 	
