@@ -1,23 +1,6 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 /**
- * Page caching
- *
- * Usage: Set your .htaccess into something like:
- *
- * # BEGIN Page cache
- *
- * RewriteRule ^/(.*)/$ /$1 [QSA]
- * RewriteRule ^$ media/pagecache/index.html [QSA]
- * RewriteRule ^([^.]+)/$ media/pagecache/$1/index.html [QSA]
- * RewriteRule ^([^.]+)$ media/pagecache/$1/index.html [QSA]
- *
- * # END Page cache
- * RewriteCond %{REQUEST_FILENAME} -s [OR]
- * RewriteCond %{REQUEST_FILENAME} -l [OR]
- * RewriteCond %{REQUEST_FILENAME} -d 
- *	
- * RewriteRule ^.*$ - [NC,L]
- * RewriteRule ^.*$ index.php [NC,L]
+ * Simple page caching for kohana 3.1
  *
  * Save the page like this:
  *		Pagecache::factory('/the/requested/uri')
@@ -25,46 +8,46 @@
  *
  * You can change the cache directory by creating your own config/pagecache.php
  */
-class Dc_Pagecache {
-	/**
-	 * @var string
-	 */
-	protected $_file;
+abstract class Dc_Pagecache {
 	
 	/**
 	 * @var string
 	 */
-	protected static $_cache_dir;
+	protected $_file;
+
+	/** 
+	 * @var string
+	 */
+	protected $_cache_dir;
+
+	/** 
+	 * @var boolean
+	 */
+	protected $_append_status;
 	
 	/**
 	 * Factory pattern for creating page cache
 	 *
 	 * @param   string		uri
+	 * @param   array		options
 	 * @return  Pagecache
 	 */
-	public static function factory($uri)
+	public static function factory($uri, array $options = NULL)
 	{
-		return new self($uri);
-	}
-	
-	/**
-	 * Returns the cache directory
-	 *
-	 * @return  string
-	 */
-	public static function cache_dir()
-	{
-		if (self::$_cache_dir === null)
+		if ($options === NULL)
 		{
-			$config = Kohana::config('pagecache');
-			if ( ! $config->offsetExists('cache_dir'))
-			{
-				throw new Exception('No cache directory is specified');
-			}
-			
-			self::$_cache_dir = $config->get('cache_dir');
+			$options = Kohana::config('pagecache')->as_array();
 		}
-		return self::$_cache_dir;
+
+		// Strip base url on path when found
+		$base_url = Kohana::$base_url;
+
+		if (strpos($uri, $base_url) === 0)
+		{
+			$uri = '/'.substr($uri, strlen($base_url));
+		}
+
+		return new Pagecache($uri, $options);
 	}
 	
 	/**
@@ -74,10 +57,10 @@ class Dc_Pagecache {
 	 */
 	public static function cleanup()
 	{
-		$path = self::cache_dir();
+		$path = Kohana::config('pagecache.cache_dir');
 		
 		// Only delete files, not the cache dir
-		return self::_delete_all($path, true);
+		return self::_delete_all($path, TRUE);
 	}
 	
 	/**
@@ -87,7 +70,7 @@ class Dc_Pagecache {
 	 * @param   boolean		whether to delete the dir or just empty it
 	 * @return  boolean
 	 */
-	protected static function _delete_all($directory, $empty = false)
+	protected static function _delete_all($directory, $empty = FALSE)
 	{
 		// Always check since we could accidentally delete root
 		if ($directory == '/')
@@ -113,9 +96,9 @@ class Dc_Pagecache {
 			return FALSE;
 		}
 		
-		$directoryHandle = opendir($directory); 
+		$directory_handle = opendir($directory);
 	
-		while ($contents = readdir($directoryHandle))
+		while ($contents = readdir($directory_handle))
 		{
 			// Do not include the two special being
 			if($contents != '.' && $contents != '..')
@@ -133,7 +116,7 @@ class Dc_Pagecache {
 			} 
 		}
 	
-		closedir($directoryHandle); 
+		closedir($directory_handle);
 	
 		if($empty === FALSE)
 		{ 
@@ -150,22 +133,26 @@ class Dc_Pagecache {
 	 * __construct()
 	 *
 	 * @param   string	URI
+	 * @param   array	options
 	 * @return  void
 	 */
-	protected function __construct($uri)
+	protected function __construct($uri, array $options)
 	{
+		$this->_cache_dir = $options['cache_dir'];
+		$this->_append_status = $options['append_status'];
+		
 		$this->_init_file($uri);
 	}
-	
+
 	/**
 	 * Initializes the file based on the uri
 	 *
-	 * @param   string	URI
+	 * @param   string	uri
 	 * @return  $this
 	 */
 	protected function _init_file($uri)
 	{
-		$base = self::cache_dir();
+		$base = $this->_cache_dir;
 		
 		// Create base path under the cache dir
 		if ( ! is_dir($base))
@@ -185,6 +172,7 @@ class Dc_Pagecache {
 
 		// Create the path to uri except for index.html
 		$path = $base;
+		
 		foreach ($paths as $sub)
 		{
 			$path .= "/$sub";
@@ -200,7 +188,7 @@ class Dc_Pagecache {
 
 		if ( ! is_file($this->_file))
 		{
-			// Create the cache file
+			// Create the cache file with empty contents
 			file_put_contents($this->_file, '');
 			
 			// Allow anyone to write to cached files
@@ -218,9 +206,48 @@ class Dc_Pagecache {
 	 */
 	public function write($data)
 	{
+		if ($this->_append_status)
+		{
+			$data .= $this->_create_status();
+		}
+		
 		file_put_contents($this->_file, $data);
 		
 		return $this;
+	}
+
+	/**
+	 * Generates a status to be appended to the cached page
+	 * as HTML comment
+	 *
+	 * @return  string
+	 */
+	protected function _create_status()
+	{
+		return '<!-- {PAGECACHE_CREATED}'.date('Y-m-d H:i:s').'{/PAGECACHE_CREATED} -->';
+	}
+
+	/**
+	 * Parses the cached data and returns the time the cache was created
+	 * Returns false when status is not found
+	 *
+	 * @param   string	data
+	 * @return  string
+	 */
+	public static function parse_status($data)
+	{
+		$regex = '/<\\!-- {PAGECACHE_CREATED}(.+){\/PAGECACHE_CREATED} -->/';
+		$matches = array();
+
+		if (preg_match($regex, $data, $matches))
+		{
+			if (isset($matches[1]))
+			{
+				return $matches[1];
+			}
+		}
+
+		return FALSE;
 	}
 
 	/** 

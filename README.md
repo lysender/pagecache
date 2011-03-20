@@ -61,7 +61,35 @@ Simple isn't it?
 	
 	 # END Page cache
 
-The Rewrite rule above will accomplish the URI pattern matching
+The Rewrite rule above will accomplish the URI pattern matching. However,
+you must configure Kohana so that it will hide `index.php` from the URL
+by setting `index_file` in bootstrap to `FALSE`.
+
+The above rewrite rule will need the following rewrite rule for Kohana:
+
+	# Protect application and system files from being viewed
+	RewriteRule ^(?:application|modules|system)\b - [F,L]
+
+	RewriteCond %{REQUEST_FILENAME} -s [OR]
+	RewriteCond %{REQUEST_FILENAME} -l [OR]
+	RewriteCond %{REQUEST_FILENAME} -d
+
+	RewriteRule ^.*$ - [NC,L]
+	RewriteRule ^.*$ index.php [NC,L]
+
+If I'm not mistaken, the above rewrite rule is from either an old version of
+Kohana's rewrite rule or it may came from Zend Framework style rewrite. Below is the
+current rewrite sample for Kohana 3.1.2 which does not work for the Pagecache.
+
+	# Protect application and system files from being viewed
+	RewriteRule ^(?:application|modules|system)\b.* index.php/$0 [L]
+
+	# Allow any files or directories that exist to be displayed directly
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+
+	# Rewrite all other URLs to index.php/URL
+	RewriteRule .* index.php/$0 [PT]
 
 ## Capturing and saving output / page
 
@@ -73,8 +101,8 @@ The basic usage goes like this:
 Currently, I used a controller to facilitate the page caching. Once a controller
 extends to this controller, it will automatically trigger output to be cached.
 
-	abstract class Controller_Cached extends Controller_Template
-	{
+	abstract class Controller_Cached extends Controller_Template {
+		
 		public function after()
 		{
 			parent::after();
@@ -98,8 +126,24 @@ extending the `Controller_Cached`.
 
 ## Cleaning up
 
-To clear your cached files, call `Pagecache::cleanup()`.
+To clear your cached files, call `Pagecache::cleanup()`. You can schedule clearing
+the cache via CRON, whatever fits your need. Note that `cleanup()` will delete
+all the cached pages, which effectively refreshes your pages contents.
+
+Currently, there is no such thing as garbage collection (as you may observe on
+several caching solutions such as _WP Super Cache_. This feature may be added
+in the future if need arises.
+
+## Web Administration
+
+In development environment, you can administer the Pagecache module by visiting
+`/pagecache/console`. Currently, it has two operations:
+
+* Test cache - to test it page caching works in your current setup
+* Clear cache - clears / deletes all cached pages
+
+It can only be accessible when `Kohana::$environment === Kohana::DEVELOPMENT`.
 
 ## Tests?
 
-Coming...
+Yes, there are tests for the code Pagecache class. 
