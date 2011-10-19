@@ -65,7 +65,7 @@ class Controller_Pagecache_Console extends Controller_Template
 	{
 		Pagecache::cleanup();
 		
-		$cache_dir = Kohana::config('pagecache.cache_dir');
+		$cache_dir = Kohana::$config->load('pagecache.cache_dir');
 		
 		$this->template->content = View::factory('pagecache/console/clearcache')
 			->bind('cache_dir', $cache_dir);

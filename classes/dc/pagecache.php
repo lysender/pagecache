@@ -36,7 +36,7 @@ abstract class Dc_Pagecache {
 	{
 		if ($options === NULL)
 		{
-			$options = Kohana::config('pagecache')->as_array();
+			$options = Kohana::$config->load('pagecache')->as_array();
 		}
 
 		// Strip base url on path when found
@@ -57,7 +57,7 @@ abstract class Dc_Pagecache {
 	 */
 	public static function cleanup()
 	{
-		$path = Kohana::config('pagecache.cache_dir');
+		$path = Kohana::$config->load('pagecache.cache_dir');
 		
 		// Only delete files, not the cache dir
 		return self::_delete_all($path, TRUE);

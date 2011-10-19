@@ -68,7 +68,7 @@ class PagecacheTest extends Kohana_UnitTest_TestCase {
 	 */
 	public function test_write($uri, $write_content, $expected_file, $expected_content)
 	{
-		$base_path = Kohana::config('pagecache.cache_dir');
+		$base_path = Kohana::$config->load('pagecache.cache_dir');
 
 		$page = Pagecache::factory($uri);
 
@@ -120,7 +120,7 @@ class PagecacheTest extends Kohana_UnitTest_TestCase {
 	 */
 	public function test_delete(Pagecache $page)
 	{
-		$base_path = Kohana::config('pagecache.cache_dir');
+		$base_path = Kohana::$config->load('pagecache.cache_dir');
 
 		$page->delete();
 
@@ -136,7 +136,7 @@ class PagecacheTest extends Kohana_UnitTest_TestCase {
 	{
 		Pagecache::cleanup();
 
-		$directory = Kohana::config('pagecache.cache_dir');
+		$directory = Kohana::$config->load('pagecache.cache_dir');
 
 		$directory_handle = opendir($directory);
 		$dir_empty = TRUE;
