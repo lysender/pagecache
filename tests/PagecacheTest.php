@@ -94,7 +94,7 @@ class PagecacheTest extends Kohana_UnitTest_TestCase {
 	public function test_read()
 	{
 		$input = "bar bar bar \n bar bar \n foo foo \n\n";
-		$config = Kohana::config('pagecache');
+		$config = Kohana::$config->load('pagecache');
 
 		$page = Pagecache::factory('/foo')->write($input);
 
@@ -143,8 +143,8 @@ class PagecacheTest extends Kohana_UnitTest_TestCase {
 
 		while ($contents = readdir($directory_handle))
 		{
-			// Do not include the two special being
-			if($contents != '.' && $contents != '..')
+            // Do not include files starting with .
+			if(strpos($contents, '.') !== 0)
 			{
 				$dir_empty = FALSE;
 				break;
