@@ -143,7 +143,7 @@ class PagecacheTest extends Kohana_UnitTest_TestCase {
 
 		while ($contents = readdir($directory_handle))
 		{
-            // Do not include files starting with .
+			// Do not include files starting with .
 			if(strpos($contents, '.') !== 0)
 			{
 				$dir_empty = FALSE;
