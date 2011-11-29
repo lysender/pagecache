@@ -68,7 +68,7 @@ class PagecacheTest extends Kohana_UnitTest_TestCase {
 	 */
 	public function test_write($uri, $write_content, $expected_file, $expected_content)
 	{
-		$base_path = Kohana::$config->load('pagecache.cache_dir');
+		$config = Kohana::$config->load('pagecache');
 
 		$page = Pagecache::factory($uri);
 
@@ -78,9 +78,15 @@ class PagecacheTest extends Kohana_UnitTest_TestCase {
 		}
 
 		// Check if file really exists on cache dir
-		$filename = $base_path.$uri.'/index.html';
+		$uri_path = ($uri && $uri !== '/') ? $uri : '';
+		$filename = $config->cache_dir.$uri_path.'/index.html';
+		
+		// Filename should contain no double slash
+		$slash = strpos($filename, '//');
+		$this->assertFalse($slash);
+		
 		$filename_check = is_file($filename);
-
+		
 		$this->assertSame($filename_check, $expected_file);
 
 		$content = file_get_contents($filename);
@@ -136,7 +142,7 @@ class PagecacheTest extends Kohana_UnitTest_TestCase {
 	{
 		Pagecache::cleanup();
 
-		$directory = Kohana::$config->load('pagecache.cache_dir');
+		$directory = Kohana::$config->load('pagecache')->cache_dir;
 
 		$directory_handle = opendir($directory);
 		$dir_empty = TRUE;
